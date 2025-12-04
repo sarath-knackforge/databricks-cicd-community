@@ -1,1 +1,1 @@
-SUCCESSFULLY DEPLOYED DATABRCIKS USING GITHUB ACTIONS verson 8
+First deployment for databrciks community version
