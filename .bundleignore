@@ -1,0 +1,47 @@
+# Ignore ANY virtual environment folder recursively
+venv
+venv/
+*/venv/
+*/venv
+**/venv/**
+**/venv/**
+
+.venv
+.venv/
+*/.venv/
+*/.venv
+**/.venv/**
+**/.venv/**
+
+venv311
+venv311/
+*/venv311/
+*/venv311
+**/venv311/**
+**/venv311/**
+
+**/site-packages/**
+**/__pycache__/**
+
+# Common Python junk
+*.pyc
+*.pyo
+
+# Build directories
+build/
+dist/
+*.egg-info
+pip-wheel-metadata/
+
+# Logs
+*.log
+
+# Jupyter
+.ipynb_checkpoints/
+
+# VSCode
+.vscode/
+
+# Git folders
+.git/
+.gitignore

@@ -1,0 +1,23 @@
+resources:
+  jobs:
+    customer_schema_provisioning:
+      name: customer-schema-provisioning-job
+
+      schedule:
+        quartz_cron_expression: "0 0/3 * ? * *"
+        timezone_id: "Asia/Kolkata"
+        pause_status: UNPAUSED
+
+      tasks:
+        - task_key: provision_customer_schemas
+          notebook_task:
+            # notebook_path: ../scripts/customer_schema_creation.ipynb
+            notebook_path: ../scripts/customer_schema_creation_v2.ipynb
+          # existing_cluster_id: ${var.cluster_id}  # if cluster is available give cluster id
+      #     job_cluster_key: serverless_cluster
+
+      # job_clusters:
+      #   - job_cluster_key: serverless_cluster
+      #     new_cluster:
+      #       spark_version: "15.4.x-scala2.12"
+      #       serverless: true

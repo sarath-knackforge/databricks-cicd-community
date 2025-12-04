@@ -1,0 +1,118 @@
+
+resources:
+  jobs:
+    deployment:
+      name: ${bundle.name}-workflow
+      max_concurrent_runs: 1
+      
+      schedule:
+        quartz_cron_expression: "0 0/2 * ? * *"
+        timezone_id: "Asia/Kolkata"
+        pause_status: ${var.schedule_pause_status}
+
+      tags:
+        project_name: "model-deploy"
+
+      environments:
+        - environment_key: default
+          spec:
+            client: "3"
+            dependencies:
+              - ../dist/*.whl
+
+      tasks:
+
+        # ------------------------------------------------------------
+        # (0) TRAIN MODEL — produces candidate_run_id
+        # ------------------------------------------------------------
+        - task_key: train_model
+          environment_key: default
+          notebook_task:
+            notebook_path: "../scripts/train_register_custom_model.ipynb"
+
+        # ------------------------------------------------------------
+        # (1) CHECK MODEL VERSION (compare metrics)
+        # ------------------------------------------------------------
+        - task_key: check_model_version
+          environment_key: default
+          depends_on:
+            - task_key: train_model
+          spark_python_task:
+            python_file: "../scripts/check_model_version.py"
+            parameters:
+              - "--env"
+              - "${bundle.target}"
+              - "--model_name"
+              - "${var.model_name}"
+              - "--candidate_run_id"
+              - "{{tasks.train_model.values.candidate_run_id}}"
+
+        # ------------------------------------------------------------
+        # (2) SHOULD WE SKIP DEPLOYMENT? (metric comparison result)
+        # ------------------------------------------------------------
+        - task_key: skip_deploy_condition
+          condition_task:
+            op: "EQUAL_TO"
+            left: "{{tasks.check_model_version.values.skip_deploy}}"
+            right: "TRUE"
+          depends_on:
+            - task_key: check_model_version
+
+        # ------------------------------------------------------------
+        # (3) SEND APPROVAL EMAIL (only if not skipped)
+        # ------------------------------------------------------------
+        - task_key: request_approval
+          environment_key: default
+          depends_on:
+            - task_key: skip_deploy_condition
+              outcome: "false"
+          spark_python_task:
+            python_file: "../scripts/sent_model_confirm_email.py"
+          # IMPORTANT: sent_model_confirm_email.py MUST call:
+          # dbutils.jobs.taskValues.set("registered_run_id", registered_run_id)
+
+        # ------------------------------------------------------------
+        # (4) WAIT FOR APPROVAL (Google Sheet polling)
+        # ------------------------------------------------------------
+        - task_key: wait_for_approval
+          environment_key: default
+          depends_on:
+            - task_key: request_approval
+          spark_python_task:
+            python_file: "../scripts/wait_for_approval.py"
+            parameters:
+              - "--run_id"
+              - "{{tasks.request_approval.values.registered_run_id}}"
+              - "--model_name"
+              - "${var.model_name}"
+              - "--model_version"
+              - "{{tasks.check_model_version.values.model_version}}"
+
+        # ------------------------------------------------------------
+        # (5) CONDITION — APPROVED?
+        # ------------------------------------------------------------
+        - task_key: approved_condition
+          condition_task:
+            op: "EQUAL_TO"
+            left: "{{tasks.wait_for_approval.values.approval}}"
+            right: "APPROVED"
+          depends_on:
+            - task_key: wait_for_approval
+
+        # ------------------------------------------------------------
+        # (6) DEPLOY MODEL — only if approved AND not skipped
+        # ------------------------------------------------------------
+        - task_key: deploy_model
+          environment_key: default
+          depends_on:
+            - task_key: approved_condition
+              outcome: "true"
+          spark_python_task:
+            python_file: "../scripts/deploy_model.py"
+            parameters:
+              - "--root_path"
+              - "${workspace.root_path}"
+              - "--env"
+              - "${bundle.target}"
+              - "--model_name"
+              - "${var.model_name}"

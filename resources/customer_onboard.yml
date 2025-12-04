@@ -1,0 +1,14 @@
+resources:
+  jobs:
+    customer_onboarding_job:
+      name: customer-onboarding-from-flask-backend
+
+      schedule:
+        quartz_cron_expression: "0 0/1 * ? * *"   # ✅ Every 16 minutes
+        timezone_id: "Asia/Kolkata"
+        pause_status: UNPAUSED
+
+      tasks:
+        - task_key: onboard_customers
+          notebook_task:
+            notebook_path: ../scripts/customer_onboarding.ipynb
