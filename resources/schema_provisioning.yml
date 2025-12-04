@@ -2,6 +2,7 @@ resources:
   jobs:
     customer_schema_provisioning:
       name: customer-schema-provisioning-job
+      max_concurrent_runs: 1
 
       schedule:
         quartz_cron_expression: "0 0/3 * ? * *"

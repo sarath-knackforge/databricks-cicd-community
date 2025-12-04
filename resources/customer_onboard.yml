@@ -2,6 +2,7 @@ resources:
   jobs:
     customer_onboarding_job:
       name: customer-onboarding-from-flask-backend
+      max_concurrent_runs: 1
 
       schedule:
         quartz_cron_expression: "0 0/1 * ? * *"   # ✅ Every 16 minutes
