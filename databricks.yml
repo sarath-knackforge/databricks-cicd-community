@@ -3,8 +3,8 @@ bundle:
 
 include:
   - resources/model_deployment.yml
-  - resources/schema_provisioning.yml
-  - resources/customer_onboard.yml
+  # - resources/schema_provisioning.yml
+  # - resources/customer_onboard.yml
 
 artifacts:
   default:
